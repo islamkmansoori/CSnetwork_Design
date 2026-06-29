@@ -19,11 +19,11 @@
   --text-muted: #94A3B8;
   
   /* Liquid Glass 2.0 Design Tokens */
-  --glass-bg: rgba(10, 15, 30, 0.75);
-  --glass-border: rgba(255, 255, 255, 0.12);
-  --glass-border-hover: rgba(255, 255, 255, 0.22);
-  --glass-shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
-  --glass-blur: 32px;
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.15);
+  --glass-border-hover: rgba(255, 255, 255, 0.3);
+  --glass-shadow: 0 16px 40px 0 rgba(0, 0, 0, 0.3);
+  --glass-blur: 40px;
   
   --font-sans: 'Plus Jakarta Sans', 'Outfit', system-ui, -apple-system, sans-serif;
   

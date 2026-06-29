@@ -1,5 +1,5 @@
 import React from 'react';
-import logoImg from '../assets/Logo.png';
+import logoImg from '../assets/cslogo.png';
 
 export default function CSLogo({ className = '', size = 'medium' }) {
   // Sizing mapping (larger sizes)
