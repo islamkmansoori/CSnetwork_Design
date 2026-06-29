@@ -463,7 +463,7 @@ export default function App() {
           }}>
             <p style={{
               fontSize: '11px',
-              color: 'var(--text-muted)',
+              color: 'var(--text-secondary)',
               lineHeight: '1.6',
               marginBottom: '10px'
             }}>
@@ -474,7 +474,7 @@ export default function App() {
             </p>
             <p style={{
               fontSize: '11px',
-              color: 'var(--text-muted)',
+              color: 'var(--text-secondary)',
               marginTop: '6px'
             }}>
               For support or inquiries, please email <a href="mailto:info@connectsouq.com" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>info@connectsouq.com</a>.
