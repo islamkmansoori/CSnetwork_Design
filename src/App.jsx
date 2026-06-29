@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
-import { LogOut, ShieldCheck, Mail, CheckCircle2, Info, Building2, User, ExternalLink } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { LogOut, ShieldCheck, CheckCircle2, Info, Building2, User, ExternalLink, Globe, Languages, Shield, Briefcase, Smartphone, Mail, CreditCard } from 'lucide-react';
 import LiquidBackground from './components/LiquidBackground';
 import CSLogo from './components/CSLogo';
 import CountryPhoneInput from './components/CountryPhoneInput';
 import OTPVerification from './components/OTPVerification';
+import UserProfileCompletion from './components/UserProfileCompletion';
+import SubscriptionPlans from './components/SubscriptionPlans';
+import CCAvenueCheckout from './components/CCAvenueCheckout';
 
 const AppleIcon = ({ size = 24, fill = "currentColor", style }) => (
   <svg viewBox="0 0 384 512" width={size} height={size} fill={fill} style={style} xmlns="http://www.w3.org/2000/svg">
@@ -11,26 +14,40 @@ const AppleIcon = ({ size = 24, fill = "currentColor", style }) => (
   </svg>
 );
 
-const WhatsAppIcon = ({ size = 24, fill = "currentColor", style }) => (
-  <svg viewBox="0 0 448 512" width={size} height={size} fill={fill} style={style} xmlns="http://www.w3.org/2000/svg">
-    <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L0 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zM223.9 414.9c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 334.1l-4.4-7.1c-18.5-29.6-28.2-64.1-28.2-99.1 0-101.9 83-184.8 184.9-184.8 49.3 0 95.8 19.3 130.7 54.2 34.9 34.9 54.1 81.3 54.1 130.9 0 101.9-82.9 184.8-185.1 184.8zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7 .9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
-  </svg>
-);
+const roleLabelMap = {
+  buyer: { label: 'Buyer', color: 'var(--secondary)', bg: 'rgba(0, 229, 255, 0.12)', border: 'rgba(0, 229, 255, 0.3)' },
+  seller: { label: 'Seller', color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.12)', border: 'rgba(245, 158, 11, 0.3)' },
+  connector: { label: 'Connector', color: '#10B981', bg: 'rgba(16, 185, 129, 0.12)', border: 'rgba(16, 185, 129, 0.3)' },
+  franchise_operator: { label: 'Franchise Operator', color: '#3B82F6', bg: 'rgba(59, 130, 246, 0.12)', border: 'rgba(59, 130, 246, 0.3)' }
+};
 
 export default function App() {
+  const getInitialStep = () => {
+    const hash = window.location.hash.replace('#', '').replace('/', '');
+    const validSteps = ['dashboard', 'whatsapp-input', 'otp-verify', 'social-connect', 'profile-completion', 'subscription', 'payment', 'success'];
+    return validSteps.includes(hash) ? hash : 'dashboard';
+  };
+
   const [flow, setFlow] = useState(null); // 'A' (Social First) or 'B' (WhatsApp First)
-  const [step, setStep] = useState('dashboard'); // 'dashboard', 'social-popup', 'whatsapp-input', 'otp-verify', 'social-connect', 'success'
+  const [step, setStep] = useState(getInitialStep); // 'dashboard', 'whatsapp-input', 'otp-verify', 'social-connect', 'profile-completion', 'subscription', 'payment', 'success'
   const [authProvider, setAuthProvider] = useState(null); // 'google', 'apple', 'whatsapp'
   const [phoneNumber, setPhoneNumber] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [otpError, setOtpError] = useState('');
+  const [chosenPlan, setChosenPlan] = useState(null);
   
-  // User info gathered from mock login
+  // User info gathered from mock login, profile completion, and payment
   const [userInfo, setUserInfo] = useState({
     name: '',
     email: '',
     phone: '',
-    avatar: ''
+    avatar: '',
+    company: '',
+    sector: '',
+    geography: '',
+    roles: [],
+    language: 'English',
+    subscription: null
   });
 
   // Simulated Social Window Popup State
@@ -39,6 +56,34 @@ export default function App() {
     provider: '',
     loading: false
   });
+
+  // Synchronize step state with URL hash for browser back/forward navigation
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '').replace('/', '');
+      const validSteps = ['dashboard', 'whatsapp-input', 'otp-verify', 'social-connect', 'profile-completion', 'subscription', 'payment', 'success'];
+      if (validSteps.includes(hash)) {
+        setStep(hash);
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  useEffect(() => {
+    const currentHash = window.location.hash.replace('#', '').replace('/', '');
+    if (currentHash !== step) {
+      window.location.hash = '/' + step;
+    }
+  }, [step]);
+
+  // Safeguard: Redirect payment step back to subscription if chosenPlan is null (e.g. on page refresh)
+  useEffect(() => {
+    if (step === 'payment' && !chosenPlan) {
+      setStep('subscription');
+    }
+  }, [step, chosenPlan]);
 
   // Trigger Mock Native Authentication Popup
   const triggerSocialAuth = (provider) => {
@@ -55,9 +100,9 @@ export default function App() {
   const completeSocialAuth = (name, email, avatar) => {
     setUserInfo(prev => ({
       ...prev,
-      name,
-      email,
-      avatar
+      name: prev.name || name,
+      email: prev.email || email,
+      avatar: prev.avatar || avatar
     }));
     setSocialPopup({ isOpen: false, provider: '', loading: false });
 
@@ -66,8 +111,8 @@ export default function App() {
       setFlow('A');
       setStep('whatsapp-input');
     } else if (flow === 'B') {
-      // Connecting Social after WhatsApp in WhatsApp-First Flow
-      setStep('success');
+      // Connecting Social after WhatsApp in WhatsApp-First Flow (leads to profile completion next)
+      setStep('profile-completion');
     }
   };
 
@@ -104,12 +149,46 @@ export default function App() {
     }));
 
     if (flow === 'A') {
-      // Social First: after OTP, we are fully authenticated
-      setStep('success');
+      // Social First: redirect to profile completion screen
+      setStep('profile-completion');
     } else if (flow === 'B') {
-      // WhatsApp First: after OTP, we prompt to connect Social (Google/Apple)
+      // WhatsApp First: prompt to connect Social (Google/Apple)
       setStep('social-connect');
     }
+  };
+
+  // Profile data submitted from completion step
+  const handleProfileSubmit = (profileData) => {
+    setUserInfo(prev => ({
+      ...prev,
+      name: profileData.name,
+      company: profileData.company,
+      sector: profileData.sector,
+      geography: profileData.geography,
+      roles: profileData.roles,
+      language: profileData.language
+    }));
+    setStep('subscription');
+  };
+
+  // Subscription plan chosen
+  const handlePlanSubmit = (planData) => {
+    setChosenPlan(planData);
+    setStep('payment');
+  };
+
+  // Payment authorized via simulated CCAvenue Gateway
+  const handlePaymentSuccess = (paymentData) => {
+    setUserInfo(prev => ({
+      ...prev,
+      subscription: {
+        name: paymentData.planName,
+        price: chosenPlan.price,
+        isTrial: paymentData.isTrial,
+        transactionId: paymentData.transactionId
+      }
+    }));
+    setStep('success');
   };
 
   // Reset back to entry dashboard
@@ -118,8 +197,30 @@ export default function App() {
     setStep('dashboard');
     setAuthProvider(null);
     setPhoneNumber('');
-    setUserInfo({ name: '', email: '', phone: '', avatar: '' });
+    setChosenPlan(null);
+    setUserInfo({
+      name: '',
+      email: '',
+      phone: '',
+      avatar: '',
+      company: '',
+      sector: '',
+      geography: '',
+      roles: [],
+      language: 'English',
+      subscription: null
+    });
   };
+
+  if (step === 'payment') {
+    return (
+      <CCAvenueCheckout
+        plan={chosenPlan}
+        onSuccess={handlePaymentSuccess}
+        onCancel={() => setStep('subscription')}
+      />
+    );
+  }
 
   return (
     <LiquidBackground>
@@ -139,7 +240,7 @@ export default function App() {
         {/* Main Frosted Liquid Glass Card */}
         <div className="glass-panel slide-up-el" style={{
           width: '100%',
-          maxWidth: '520px',
+          maxWidth: '560px',
           padding: '44px 36px',
           position: 'relative',
           display: 'flex',
@@ -178,7 +279,6 @@ export default function App() {
                   }}
                   className="btn btn-social"
                 >
-                  {/* Inline Google Icon */}
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                     <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -222,7 +322,7 @@ export default function App() {
                   onMouseEnter={(e) => e.currentTarget.style.filter = 'brightness(1.1)'}
                   onMouseLeave={(e) => e.currentTarget.style.filter = 'none'}
                 >
-                  <WhatsAppIcon size={18} fill="#fff" />
+                  <Smartphone size={18} />
                   Continue with WhatsApp
                 </button>
               </div>
@@ -242,6 +342,31 @@ export default function App() {
                 <span style={{ fontWeight: '700', color: 'var(--secondary)', display: 'block', marginBottom: '4px' }}>💡 Interactive Testing Guide:</span>
                 • <strong>Flow A:</strong> Choose Google/Apple first, and you will be asked to confirm WhatsApp after. <br />
                 • <strong>Flow B:</strong> Choose WhatsApp first, and you will be asked to link Google/Apple after.
+                <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <button
+                    onClick={() => {
+                      setUserInfo(prev => ({
+                        ...prev,
+                        name: 'Demo Operator',
+                        company: 'Venture Network LLC',
+                        sector: 'Technology & Software',
+                        geography: 'United Arab Emirates',
+                        roles: ['connector', 'franchise_operator'],
+                        language: 'English'
+                      }));
+                      setStep('subscription');
+                    }}
+                    className="btn btn-secondary"
+                    style={{
+                      background: 'rgba(0, 82, 255, 0.08)',
+                      borderColor: 'rgba(0, 82, 255, 0.2)',
+                      fontSize: '13px',
+                      padding: '10px'
+                    }}
+                  >
+                    🛠️ Sandbox Mode: Test Subscription Directly
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -366,7 +491,23 @@ export default function App() {
             </div>
           )}
 
-          {/* STEP 5: SUCCESS / LOGGED IN LANDING PAGE */}
+          {/* STEP 5: PROFILE COMPLETION SCREEN */}
+          {step === 'profile-completion' && (
+            <UserProfileCompletion
+              initialName={userInfo.name}
+              onSubmit={handleProfileSubmit}
+            />
+          )}
+
+          {/* STEP 6: SUBSCRIPTION PLANS SCREEN */}
+          {step === 'subscription' && (
+            <SubscriptionPlans
+              onSubmit={handlePlanSubmit}
+            />
+          )}
+
+
+          {/* STEP 8: SUCCESS / LOGGED IN LANDING PAGE */}
           {step === 'success' && (
             <div className="fade-in-el" style={{ width: '100%', textAlign: 'center' }}>
               <div style={{ marginBottom: '24px' }}>
@@ -385,65 +526,146 @@ export default function App() {
                   <CheckCircle2 size={32} />
                 </div>
                 <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#fff', marginBottom: '4px' }}>
-                  Welcome Onboard!
+                  Account Fully Active!
                 </h2>
                 <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
                   You are registered under the CS Network Franchise Group
                 </p>
               </div>
 
-              {/* Profile Frosted Section */}
+              {/* Profile Card Section */}
               <div className="glass-panel" style={{
                 background: 'rgba(255, 255, 255, 0.02)',
                 borderRadius: '16px',
-                padding: '20px',
+                padding: '24px',
                 textAlign: 'left',
                 width: '100%',
                 marginBottom: '24px',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '12px',
+                gap: '14px',
                 border: '1px solid rgba(255, 255, 255, 0.05)'
               }}>
                 
                 {/* User avatar and name info */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', paddingBottom: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '14px', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', paddingBottom: '14px' }}>
                   <img 
                     src={userInfo.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&crop=faces'} 
                     alt="User Profile" 
                     style={{
-                      width: '48px',
-                      height: '48px',
+                      width: '54px',
+                      height: '54px',
                       borderRadius: '50%',
                       border: '2px solid var(--primary)',
                       objectFit: 'cover'
                     }} 
                   />
                   <div>
-                    <strong style={{ color: '#fff', fontSize: '15px', display: 'block' }}>{userInfo.name || 'Franchise Operator'}</strong>
+                    <strong style={{ color: '#fff', fontSize: '16px', display: 'block' }}>{userInfo.name || 'Franchise Operator'}</strong>
                     <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <Building2 size={11} color="var(--secondary)" /> Verified Operator ID: CS-F9382
+                      <Building2 size={11} color="var(--secondary)" /> Operator ID: CS-F9382
                     </span>
                   </div>
                 </div>
 
-                {/* Detail fields */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '13px' }}>
+                {/* Profile Details List */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '13.5px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Email Address:</span>
+                    <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '5px' }}><Mail size={12} /> Email:</span>
                     <span style={{ color: '#fff', fontWeight: '500' }}>{userInfo.email || 'operator@connectsouq.com'}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>WhatsApp Number:</span>
+                    <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '5px' }}><Smartphone size={12} /> WhatsApp:</span>
                     <span style={{ color: '#fff', fontWeight: '500' }}>{userInfo.phone || '+971 50 123 4567'}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-muted)' }}>Franchise Status:</span>
-                    <span style={{ color: 'var(--accent-green)', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      Active Group Operator
-                    </span>
+                    <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '5px' }}><Building2 size={12} /> Company:</span>
+                    <span style={{ color: '#fff', fontWeight: '500' }}>{userInfo.company}</span>
                   </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '5px' }}><Shield size={12} /> Sector:</span>
+                    <span style={{ color: '#fff', fontWeight: '500' }}>{userInfo.sector}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '5px' }}><Globe size={12} /> Geography:</span>
+                    <span style={{ color: '#fff', fontWeight: '500' }}>{userInfo.geography}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '5px' }}><Languages size={12} /> Preferred Language:</span>
+                    <span style={{ color: '#fff', fontWeight: '500' }}>{userInfo.language === 'English' ? '🇬🇧 English' : '🇪🇸 Spanish'}</span>
+                  </div>
+                  
+                  {/* Subscription Info Segment */}
+                  {userInfo.subscription && (
+                    <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '12px', marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '5px' }}><CreditCard size={12} /> Premium Plan:</span>
+                        <span style={{ color: 'var(--secondary)', fontWeight: '700' }}>{userInfo.subscription.name}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Billing Cycle:</span>
+                        <span style={{ color: '#fff', fontWeight: '500' }}>
+                          {userInfo.subscription.isTrial ? '30-Day Free Trial ($0.00)' : `$${userInfo.subscription.price.toFixed(2)} USD / mo`}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Transaction Reference:</span>
+                        <span style={{ color: '#fff', fontFamily: 'monospace', fontSize: '11px' }}>{userInfo.subscription.transactionId}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>Gateway Status:</span>
+                        <span style={{ color: 'var(--accent-green)', fontWeight: '700', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          ✓ Confirmed via CCAvenue
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Multi-role Active Tag Display */}
+                  <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)', paddingTop: '10px', marginTop: '4px' }}>
+                    <span style={{ color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '8px' }}>
+                      <Briefcase size={12} /> Active Deal Roles:
+                    </span>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {userInfo.roles.map(roleKey => {
+                        const meta = roleLabelMap[roleKey] || { label: roleKey, color: '#fff', bg: 'rgba(255, 255, 255, 0.08)', border: 'transparent' };
+                        return (
+                          <span
+                            key={roleKey}
+                            style={{
+                              fontSize: '11px',
+                              fontWeight: '700',
+                              color: meta.color,
+                              background: meta.bg,
+                              border: `1.5px solid ${meta.border}`,
+                              borderRadius: '20px',
+                              padding: '3px 10px',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.5px'
+                            }}
+                          >
+                            {meta.label}
+                          </span>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                 </div>
+
+                {/* Profile active engagement notice */}
+                <div style={{
+                  background: 'rgba(0, 82, 255, 0.05)',
+                  border: '1px solid rgba(0, 82, 255, 0.15)',
+                  borderRadius: '12px',
+                  padding: '12px',
+                  color: 'var(--text-secondary)',
+                  fontSize: '12.5px',
+                  lineHeight: '1.45'
+                }}>
+                  Your multi-role operator profile is now fully initialized. You can participate dynamically as a buyer, seller, or connector in cross-border deal flows.
+                </div>
+
               </div>
 
               {/* Action buttons */}
@@ -554,10 +776,10 @@ export default function App() {
               alignItems: 'center',
               width: '100%',
               borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
-              paddingBottom: '12px',
+              paddingBottom: '10px',
               marginBottom: '16px',
               fontSize: '11px',
-              color: '#475569',
+              color: '#64748b',
               fontWeight: 500
             }}>
               <span>Sign in with {socialPopup.provider}</span>
@@ -566,9 +788,9 @@ export default function App() {
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: '#64748b',
+                  color: '#94a3b8',
                   cursor: 'pointer',
-                  fontSize: '16px',
+                  fontSize: '14px',
                   fontWeight: 'bold',
                   outline: 'none'
                 }}
@@ -576,7 +798,7 @@ export default function App() {
                 ✕
               </button>
             </div>
-            
+
             {socialPopup.loading ? (
               /* Spinner State */
               <div style={{ padding: '40px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '14px' }}>
@@ -584,32 +806,32 @@ export default function App() {
                   width: '32px',
                   height: '32px',
                   border: '3px solid rgba(0, 82, 255, 0.1)',
-                  borderTopColor: 'var(--primary)',
+                  borderTopColor: '#0052FF',
                   borderRadius: '50%',
                   animation: 'spin-slow 0.8s linear infinite'
                 }} />
-                <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: 500 }}>Connecting secure credentials...</span>
+                <span style={{ fontSize: '13px', color: '#64748b' }}>Connecting secure credentials...</span>
               </div>
             ) : (
               /* Account Chooser State */
               <div style={{ width: '100%' }}>
-                <div style={{ marginBottom: '20px' }}>
+                <div style={{ marginBottom: '16px' }}>
                   {socialPopup.provider === 'Google' ? (
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ margin: '0 auto 10px' }}>
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" style={{ margin: '0 auto 8px' }}>
                       <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                       <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
                       <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l3.66-2.85z" fill="#FBBC05"/>
                       <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.85c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                     </svg>
                   ) : (
-                    <AppleIcon size={32} fill="#1e293b" style={{ margin: '0 auto 10px', color: '#1e293b' }} />
+                    <AppleIcon size={32} fill="#000" style={{ margin: '0 auto 8px', color: '#000' }} />
                   )}
-                  <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#1e293b' }}>Choose an account</h4>
-                  <span style={{ fontSize: '12px', color: '#475569' }}>to continue to csnetwork.global</span>
+                  <h4 style={{ fontSize: '15px', fontWeight: 'bold' }}>Choose an account</h4>
+                  <span style={{ fontSize: '11px', color: '#64748b' }}>to continue to csnetwork.global</span>
                 </div>
-                
+
                 {/* Account list */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   
                   {/* Account 1 */}
                   <button 
@@ -617,80 +839,64 @@ export default function App() {
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '12px',
-                      padding: '12px',
-                      border: '1px solid rgba(0, 0, 0, 0.06)',
+                      gap: '10px',
+                      padding: '10px',
+                      border: '1px solid #e2e8f0',
                       borderRadius: '12px',
                       width: '100%',
-                      background: 'rgba(255, 255, 255, 0.5)',
+                      background: '#f8fafc',
                       cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.2s ease',
-                      outline: 'none'
+                      textAlign: 'left'
                     }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.85)';
-                      e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.12)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.5)';
-                      e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.06)';
-                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = '#f8fafc'}
                   >
                     <img 
                       src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=faces" 
                       alt="" 
-                      style={{ width: '32px', height: '32px', borderRadius: '50%' }}
+                      style={{ width: '28px', height: '28px', borderRadius: '50%' }}
                     />
                     <div>
-                      <strong style={{ fontSize: '13px', display: 'block', color: '#1e293b', fontWeight: 600 }}>John Doe</strong>
-                      <span style={{ fontSize: '11px', color: '#475569' }}>john.doe@connectsouq.com</span>
+                      <strong style={{ fontSize: '12px', display: 'block', color: '#0f172a' }}>John Doe</strong>
+                      <span style={{ fontSize: '11px', color: '#64748b' }}>john.doe@connectsouq.com</span>
                     </div>
                   </button>
-                  
+
                   {/* Account 2 */}
                   <button 
                     onClick={() => completeSocialAuth('Sarah Smith', 'sarah.smith@connectsouq.com', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=faces')}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '12px',
-                      padding: '12px',
-                      border: '1px solid rgba(0, 0, 0, 0.06)',
+                      gap: '10px',
+                      padding: '10px',
+                      border: '1px solid #e2e8f0',
                       borderRadius: '12px',
                       width: '100%',
-                      background: 'rgba(255, 255, 255, 0.5)',
+                      background: '#f8fafc',
                       cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.2s ease',
-                      outline: 'none'
+                      textAlign: 'left'
                     }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.85)';
-                      e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.12)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.5)';
-                      e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.06)';
-                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#f1f5f9'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = '#f8fafc'}
                   >
                     <img 
                       src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=faces" 
                       alt="" 
-                      style={{ width: '32px', height: '32px', borderRadius: '50%' }}
+                      style={{ width: '28px', height: '28px', borderRadius: '50%' }}
                     />
                     <div>
-                      <strong style={{ fontSize: '13px', display: 'block', color: '#1e293b', fontWeight: 600 }}>Sarah Smith</strong>
-                      <span style={{ fontSize: '11px', color: '#475569' }}>sarah.smith@connectsouq.com</span>
+                      <strong style={{ fontSize: '12px', display: 'block', color: '#0f172a' }}>Sarah Smith</strong>
+                      <span style={{ fontSize: '11px', color: '#64748b' }}>sarah.smith@connectsouq.com</span>
                     </div>
                   </button>
                   
                 </div>
-                
+
                 <div style={{
-                  marginTop: '20px',
-                  fontSize: '11.5px',
-                  color: '#475569',
+                  marginTop: '16px',
+                  fontSize: '11px',
+                  color: '#64748b',
                   lineHeight: '1.4'
                 }}>
                   To create a new operator credential, select one of the existing identities above. Google/Apple will automatically verify your profile details.
