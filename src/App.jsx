@@ -508,9 +508,9 @@ export default function App() {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'rgba(5, 8, 20, 0.45)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
+          background: 'rgba(10, 15, 30, 0.35)',
+          backdropFilter: 'blur(10px)',
+          WebkitBackdropFilter: 'blur(10px)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -521,14 +521,14 @@ export default function App() {
           <div className="glass-panel" style={{
             width: '100%',
             maxWidth: '380px',
-            background: 'rgba(15, 22, 42, 0.72)',
+            background: 'rgba(255, 255, 255, 0.72)',
             backdropFilter: 'blur(30px) saturate(200%)',
             WebkitBackdropFilter: 'blur(30px) saturate(200%)',
-            color: '#ffffff',
+            color: '#1e293b',
             padding: '24px',
             borderRadius: '24px',
-            boxShadow: '0 30px 70px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.15)',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
+            boxShadow: '0 30px 70px rgba(0, 0, 0, 0.15), inset 0 1px 1px rgba(255, 255, 255, 0.8)',
+            border: '1px solid rgba(255, 255, 255, 0.5)',
             textAlign: 'center',
             display: 'flex',
             flexDirection: 'column',
@@ -541,11 +541,11 @@ export default function App() {
               justifyContent: 'space-between',
               alignItems: 'center',
               width: '100%',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
               paddingBottom: '12px',
               marginBottom: '16px',
               fontSize: '11px',
-              color: 'var(--text-muted)',
+              color: '#475569',
               fontWeight: 500
             }}>
               <span>Sign in with {socialPopup.provider}</span>
@@ -554,7 +554,7 @@ export default function App() {
                 style={{
                   background: 'none',
                   border: 'none',
-                  color: 'var(--text-muted)',
+                  color: '#64748b',
                   cursor: 'pointer',
                   fontSize: '16px',
                   fontWeight: 'bold',
@@ -571,12 +571,12 @@ export default function App() {
                 <div style={{
                   width: '32px',
                   height: '32px',
-                  border: '3px solid rgba(0, 82, 255, 0.15)',
+                  border: '3px solid rgba(0, 82, 255, 0.1)',
                   borderTopColor: 'var(--primary)',
                   borderRadius: '50%',
                   animation: 'spin-slow 0.8s linear infinite'
                 }} />
-                <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Connecting secure credentials...</span>
+                <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: 500 }}>Connecting secure credentials...</span>
               </div>
             ) : (
               /* Account Chooser State */
@@ -590,10 +590,10 @@ export default function App() {
                       <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.85c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
                     </svg>
                   ) : (
-                    <Apple size={32} fill="#ffffff" style={{ margin: '0 auto 10px', color: '#ffffff' }} />
+                    <Apple size={32} fill="#1e293b" style={{ margin: '0 auto 10px', color: '#1e293b' }} />
                   )}
-                  <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#ffffff' }}>Choose an account</h4>
-                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>to continue to csnetwork.global</span>
+                  <h4 style={{ fontSize: '16px', fontWeight: 700, color: '#1e293b' }}>Choose an account</h4>
+                  <span style={{ fontSize: '12px', color: '#475569' }}>to continue to csnetwork.global</span>
                 </div>
                 
                 {/* Account list */}
@@ -607,22 +607,22 @@ export default function App() {
                       alignItems: 'center',
                       gap: '12px',
                       padding: '12px',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      border: '1px solid rgba(0, 0, 0, 0.06)',
                       borderRadius: '12px',
                       width: '100%',
-                      background: 'rgba(255, 255, 255, 0.04)',
+                      background: 'rgba(255, 255, 255, 0.5)',
                       cursor: 'pointer',
                       textAlign: 'left',
                       transition: 'all 0.2s ease',
                       outline: 'none'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.16)';
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.85)';
+                      e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.12)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.5)';
+                      e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.06)';
                     }}
                   >
                     <img 
@@ -631,8 +631,8 @@ export default function App() {
                       style={{ width: '32px', height: '32px', borderRadius: '50%' }}
                     />
                     <div>
-                      <strong style={{ fontSize: '13px', display: 'block', color: '#ffffff', fontWeight: 600 }}>John Doe</strong>
-                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>john.doe@connectsouq.com</span>
+                      <strong style={{ fontSize: '13px', display: 'block', color: '#1e293b', fontWeight: 600 }}>John Doe</strong>
+                      <span style={{ fontSize: '11px', color: '#475569' }}>john.doe@connectsouq.com</span>
                     </div>
                   </button>
                   
@@ -644,22 +644,22 @@ export default function App() {
                       alignItems: 'center',
                       gap: '12px',
                       padding: '12px',
-                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      border: '1px solid rgba(0, 0, 0, 0.06)',
                       borderRadius: '12px',
                       width: '100%',
-                      background: 'rgba(255, 255, 255, 0.04)',
+                      background: 'rgba(255, 255, 255, 0.5)',
                       cursor: 'pointer',
                       textAlign: 'left',
                       transition: 'all 0.2s ease',
                       outline: 'none'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.16)';
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.85)';
+                      e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.12)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.5)';
+                      e.currentTarget.style.borderColor = 'rgba(0, 0, 0, 0.06)';
                     }}
                   >
                     <img 
@@ -668,8 +668,8 @@ export default function App() {
                       style={{ width: '32px', height: '32px', borderRadius: '50%' }}
                     />
                     <div>
-                      <strong style={{ fontSize: '13px', display: 'block', color: '#ffffff', fontWeight: 600 }}>Sarah Smith</strong>
-                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>sarah.smith@connectsouq.com</span>
+                      <strong style={{ fontSize: '13px', display: 'block', color: '#1e293b', fontWeight: 600 }}>Sarah Smith</strong>
+                      <span style={{ fontSize: '11px', color: '#475569' }}>sarah.smith@connectsouq.com</span>
                     </div>
                   </button>
                   
@@ -678,7 +678,7 @@ export default function App() {
                 <div style={{
                   marginTop: '20px',
                   fontSize: '11.5px',
-                  color: 'var(--text-muted)',
+                  color: '#475569',
                   lineHeight: '1.4'
                 }}>
                   To create a new operator credential, select one of the existing identities above. Google/Apple will automatically verify your profile details.
