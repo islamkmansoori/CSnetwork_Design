@@ -7,7 +7,7 @@ import CountryPhoneInput from '../components/CountryPhoneInput';
 import OTPVerification from '../components/OTPVerification';
 
 // ─── Config ──────────────────────────────────────────────────
-const BASE_URL     = 'https://4ecc-2401-4900-8822-3223-7452-2a92-525f-6d6.ngrok-free.app';
+const BASE_URL        = 'https://4ecc-2401-4900-8822-3223-7452-2a92-525f-6d6.ngrok-free.app';
 const GOOGLE_AUTH_URL = `${BASE_URL}/oauth2/authorization/google`;
 const APPLE_AUTH_URL  = `${BASE_URL}/oauth2/authorization/apple`;
 const AUTH_OPS_URL    = `${BASE_URL}/auth-operations`;
@@ -45,28 +45,14 @@ const callAuthOps = async (body) => {
     credentials: 'include',
     body: JSON.stringify(body),
   });
-
   const data = await res.json().catch(() => ({}));
-
-  if (!res.ok) {
-    throw new Error(data.message || `Error ${res.status}`);
-  }
-
+  if (!res.ok) throw new Error(data.message || `Error ${res.status}`);
   return data;
 };
 
-// ─── Save User to localStorage ────────────────────────────────
-const saveUserSession = ({ userId, fullName, email, phone, accessToken, refreshToken }) => {
-  localStorage.setItem('cs_isLoggedIn',   'true');
-  localStorage.setItem('cs_userId',       String(userId || ''));
-  localStorage.setItem('cs_accessToken',  accessToken  || '');
-  localStorage.setItem('cs_refreshToken', refreshToken || '');
-  localStorage.setItem('cs_userData', JSON.stringify({
-    userId:   String(userId   || ''),
-    fullName: fullName || '',
-    email:    email    || '',
-    phone:    phone    || '',
-  }));
+// ─── Navigate helper ──────────────────────────────────────────
+const getNextRoute = (isFormFill) => {
+  return isFormFill ? '/dashboard' : '/complete-profile';
 };
 
 // ─── Main Auth Page ───────────────────────────────────────────
@@ -74,54 +60,48 @@ export default function Auth() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // steps: 'login' | 'phone-input' | 'otp-verify'
-  const [step, setStep]           = useState('login');
-  const [flow, setFlow]           = useState('A');
-  // flow A = Google first → Phone OTP
-  // flow B = WhatsApp OTP directly
-
+  const [step, setStep]               = useState('login');
+  const [flow, setFlow]               = useState('A');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [phoneError, setPhoneError]   = useState('');
   const [otpError, setOtpError]       = useState('');
   const [apiError, setApiError]       = useState('');
   const [isLoading, setIsLoading]     = useState(false);
 
-  // Google se aaya pending user (phoneVerified: false)
   const [pendingUser, setPendingUser] = useState({
-    userId:   '',
-    fullName: '',
-    email:    '',
-    phone:    '',
+    userId: '', fullName: '', email: '', phone: '', isFormFill: false,
   });
 
-  // ── Already logged in check ─────────────────────────────────
+  // ── Already logged in? ─────────────────────────────────────
   useEffect(() => {
     if (localStorage.getItem('cs_isLoggedIn') === 'true') {
-      navigate('/dashboard', { replace: true });
+      const raw = localStorage.getItem('cs_userData');
+      if (raw) {
+        const data = JSON.parse(raw);
+        navigate(getNextRoute(data.isFormFill), { replace: true });
+      } else {
+        navigate('/complete-profile', { replace: true });
+      }
     }
   }, []);
 
-  // ── OAuthCallback ne /?step=phone-verify pe bheja ──────────
+  // ── OAuthCallback redirect check ───────────────────────────
   useEffect(() => {
     const params = new URLSearchParams(location.search);
-
     if (params.get('step') === 'phone-verify') {
-      // URL clean karo
       window.history.replaceState({}, '', '/');
-
       const saved = sessionStorage.getItem('pending_google_user');
       if (saved) {
         try {
           const parsed = JSON.parse(saved);
           sessionStorage.removeItem('pending_google_user');
-
           setPendingUser({
-            userId:   parsed.userId   || '',
-            fullName: parsed.fullName || '',
-            email:    parsed.email    || '',
-            phone:    '',
+            userId:     parsed.userId   || '',
+            fullName:   parsed.fullName || '',
+            email:      parsed.email    || '',
+            phone:      '',
+            isFormFill: parsed.isFormFill || false,
           });
-
           setFlow('A');
           setStep('phone-input');
         } catch (e) {
@@ -140,10 +120,10 @@ export default function Auth() {
     window.location.href = APPLE_AUTH_URL;
   };
 
-  // ── WhatsApp (Flow B) ───────────────────────────────────────
+  // ── WhatsApp Flow ───────────────────────────────────────────
   const handleWhatsAppFlow = () => {
     setFlow('B');
-    setPendingUser({ userId: '', fullName: '', email: '', phone: '' });
+    setPendingUser({ userId: '', fullName: '', email: '', phone: '', isFormFill: false });
     setStep('phone-input');
   };
 
@@ -162,29 +142,22 @@ export default function Auth() {
 
     try {
       if (flow === 'A') {
-        // ✅ SEND_SIGNUP_OTP
-        // userId STRING bhejo (as per backend docs)
         await callAuthOps({
-          userId:      pendingUser.userId,   // ✅ String, not Number
+          userId:      pendingUser.userId,
           phoneNumber: phoneNumber,
           requestType: 'SEND_SIGNUP_OTP',
         });
-
       } else {
-        // ✅ SEND_LOGIN_OTP
         await callAuthOps({
           phoneNumber: phoneNumber,
           requestType: 'SEND_LOGIN_OTP',
         });
       }
-
-      // Phone save karo
       setPendingUser(prev => ({ ...prev, phone: phoneNumber }));
       setStep('otp-verify');
-
     } catch (err) {
       console.error('Send OTP error:', err);
-      setPhoneError(err.message || 'Failed to send OTP. Try again.');
+      setPhoneError(err.message || 'Failed to send OTP.');
     } finally {
       setIsLoading(false);
     }
@@ -192,62 +165,70 @@ export default function Auth() {
 
   // ── Verify OTP ──────────────────────────────────────────────
   const handleOTPVerify = async (code) => {
-    setOtpError('');
-    setIsLoading(true);
+  setOtpError('');
+  setIsLoading(true);
 
-    try {
-      if (flow === 'A') {
-        // ✅ VERIFY_SIGNUP_OTP
-        const data = await callAuthOps({
-          userId:      pendingUser.userId,   // ✅ String
-          phoneNumber: pendingUser.phone,
-          otp:         code,
-          requestType: 'VERIFY_SIGNUP_OTP',
-        });
+  try {
+    let data;
 
-        console.log('✅ Signup verified:', data);
+    if (flow === 'A') {
+      data = await callAuthOps({
+        userId: pendingUser.userId,
+        phoneNumber: pendingUser.phone,
+        otp: code,
+        requestType: 'VERIFY_SIGNUP_OTP',
+      });
 
-        // Session save karo
-        saveUserSession({
-          userId:       data.userId   || pendingUser.userId,
-          fullName:     data.fullName || pendingUser.fullName,
-          email:        data.email    || pendingUser.email,
-          phone:        pendingUser.phone,
-          accessToken:  data.accessToken,
-          refreshToken: data.refreshToken,
-        });
+      console.log('✅ Signup verified:', data);
+    } else {
+      data = await callAuthOps({
+        phoneNumber: pendingUser.phone,
+        otp: code,
+        requestType: 'VERIFY_LOGIN_OTP',
+      });
 
-        navigate('/dashboard', { replace: true });
-
-      } else {
-        // ✅ VERIFY_LOGIN_OTP
-        const data = await callAuthOps({
-          phoneNumber: pendingUser.phone,
-          otp:         code,
-          requestType: 'VERIFY_LOGIN_OTP',
-        });
-
-        console.log('✅ Login verified:', data);
-
-        saveUserSession({
-          userId:       data.userId,
-          fullName:     data.fullName,
-          email:        data.email,
-          phone:        pendingUser.phone,
-          accessToken:  data.accessToken,
-          refreshToken: data.refreshToken,
-        });
-
-        navigate('/dashboard', { replace: true });
-      }
-
-    } catch (err) {
-      console.error('OTP verify error:', err);
-      setOtpError(err.message || 'Invalid OTP. Please try again.');
-    } finally {
-      setIsLoading(false);
+      console.log('✅ Login verified:', data);
     }
-  };
+
+    const accessToken = data.accessToken || '';
+    const refreshToken = data.refreshToken || '';
+    const isFormFill = data.isFormFill === true;
+
+    if (!accessToken) {
+      throw new Error('Access token missing in OTP verify response');
+    }
+
+    // ✅ SAVE TOKENS
+    localStorage.setItem('cs_accessToken', accessToken);
+    localStorage.setItem('cs_refreshToken', refreshToken);
+    localStorage.setItem('cs_isLoggedIn', 'true');
+    localStorage.setItem('cs_userId', String(data.userId || pendingUser.userId || ''));
+
+    const userData = {
+      userId: String(data.userId || pendingUser.userId || ''),
+      fullName: data.fullName || pendingUser.fullName || '',
+      email: data.email || pendingUser.email || '',
+      phone: pendingUser.phone || '',
+      isFormFill,
+    };
+
+    localStorage.setItem('cs_userData', JSON.stringify(userData));
+
+    console.log('💾 Saved accessToken:', localStorage.getItem('cs_accessToken'));
+    console.log('💾 Saved userData:', JSON.parse(localStorage.getItem('cs_userData')));
+
+    if (isFormFill) {
+      navigate('/plans', { replace: true });
+    } else {
+      navigate('/complete-profile', { replace: true });
+    }
+  } catch (err) {
+    console.error('OTP verify error:', err);
+    setOtpError(err.message || 'Invalid OTP. Please try again.');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   // ── Resend OTP ──────────────────────────────────────────────
   const handleResendOTP = async () => {
@@ -276,8 +257,6 @@ export default function Auth() {
         minHeight: '100vh', padding: '40px 20px',
         width: '100%', zIndex: 2, boxSizing: 'border-box',
       }}>
-
-        {/* ── Main Card ─────────────────────────────────────── */}
         <div className="glass-panel slide-up-el" style={{
           width: '100%', maxWidth: '520px',
           padding: '44px 36px',
@@ -285,293 +264,152 @@ export default function Auth() {
           alignItems: 'center', boxSizing: 'border-box',
           marginBottom: '24px',
         }}>
-
-          {/* Logo */}
           <div style={{ marginBottom: '32px', textAlign: 'center', width: '100%' }}>
             <CSLogo size="medium" />
           </div>
 
-          {/* API Error Banner */}
           {apiError && (
             <div style={{
-              width: '100%', marginBottom: '16px',
-              padding: '12px 16px',
+              width: '100%', marginBottom: '16px', padding: '12px 16px',
               background: 'rgba(239,68,68,0.1)',
               border: '1px solid rgba(239,68,68,0.3)',
-              borderRadius: '12px', fontSize: '13px',
-              color: '#fca5a5',
+              borderRadius: '12px', fontSize: '13px', color: '#fca5a5',
               display: 'flex', alignItems: 'center', gap: '8px',
             }}>
               ⚠️ {apiError}
-              <button
-                onClick={() => setApiError('')}
-                style={{
-                  marginLeft: 'auto', background: 'none',
-                  border: 'none', color: '#fca5a5',
-                  cursor: 'pointer', fontSize: '16px',
-                }}
-              >✕</button>
+              <button onClick={() => setApiError('')} style={{
+                marginLeft: 'auto', background: 'none', border: 'none',
+                color: '#fca5a5', cursor: 'pointer', fontSize: '16px',
+              }}>✕</button>
             </div>
           )}
 
-          {/* ════════════════════════════════ */}
-          {/* STEP 1: LOGIN SCREEN            */}
-          {/* ════════════════════════════════ */}
+          {/* LOGIN */}
           {step === 'login' && (
             <div className="fade-in-el" style={{ width: '100%', textAlign: 'center' }}>
               <div style={{ marginBottom: '28px' }}>
-                <h1 style={{
-                  fontSize: '24px', fontWeight: '700',
-                  color: '#fff', marginBottom: '10px',
-                }}>
+                <h1 style={{ fontSize: '24px', fontWeight: '700', color: '#fff', marginBottom: '10px' }}>
                   Global Franchise Operators Group
                 </h1>
-                <p style={{
-                  fontSize: '14px',
-                  color: 'rgba(255,255,255,0.5)',
-                  lineHeight: '1.6',
-                }}>
+                <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', lineHeight: '1.6' }}>
                   Collaborate, grow, and monetize your networks.
                 </p>
               </div>
-
               <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', width: '100%' }}>
-
-                {/* Google */}
                 <button onClick={handleGoogleLogin} className="btn btn-social">
                   <GoogleIcon /> Continue with Google
                 </button>
-
-                {/* Apple */}
                 <button onClick={handleAppleLogin} className="btn btn-social">
                   <AppleIcon size={18} fill="#fff" /> Continue with Apple
                 </button>
-
-                {/* Divider */}
                 <div style={{ display: 'flex', alignItems: 'center', margin: '4px 0' }}>
                   <div style={{ flexGrow: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
-                  <span style={{
-                    padding: '0 12px', fontSize: '12px',
-                    color: 'rgba(255,255,255,0.3)',
-                    textTransform: 'uppercase', letterSpacing: '1px',
-                  }}>or</span>
+                  <span style={{ padding: '0 12px', fontSize: '12px', color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '1px' }}>or</span>
                   <div style={{ flexGrow: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
                 </div>
-
-                {/* WhatsApp */}
-                <button
-                  onClick={handleWhatsAppFlow}
-                  className="btn btn-primary"
-                  style={{
-                    background: 'linear-gradient(135deg, #25D366, #128C7E)',
-                    boxShadow: '0 4px 20px rgba(37,211,102,0.25)',
-                  }}
-                >
-                  <WhatsAppIcon size={18} fill="#fff" />
-                  Continue with WhatsApp
+                <button onClick={handleWhatsAppFlow} className="btn btn-primary" style={{
+                  background: 'linear-gradient(135deg, #25D366, #128C7E)',
+                  boxShadow: '0 4px 20px rgba(37,211,102,0.25)',
+                }}>
+                  <WhatsAppIcon size={18} fill="#fff" /> Continue with WhatsApp
                 </button>
               </div>
-
-              {/* Info Box */}
               <div style={{
                 marginTop: '24px', padding: '12px 16px',
-                background: 'rgba(0,82,255,0.06)',
-                border: '1px solid rgba(0,82,255,0.15)',
-                borderRadius: '12px', fontSize: '12px',
-                color: 'rgba(255,255,255,0.45)',
+                background: 'rgba(0,82,255,0.06)', border: '1px solid rgba(0,82,255,0.15)',
+                borderRadius: '12px', fontSize: '12px', color: 'rgba(255,255,255,0.45)',
                 lineHeight: 1.6, textAlign: 'left',
               }}>
-                <span style={{
-                  fontWeight: '700', color: '#00e5ff',
-                  display: 'block', marginBottom: '4px',
-                }}>
-                  💡 New user?
+                <span style={{ fontWeight: '700', color: '#00e5ff', display: 'block', marginBottom: '4px' }}>
+                  💡 How it works:
                 </span>
-                Sign in with Google → verify WhatsApp → you're in!<br />
-                Already registered? Google or WhatsApp OTP both work.
+                • <strong>Google/Apple:</strong> Sign in → WhatsApp OTP → Profile → Plan → Dashboard<br />
+                • <strong>WhatsApp:</strong> OTP → Profile → Plan → Dashboard
               </div>
             </div>
           )}
 
-          {/* ════════════════════════════════ */}
-          {/* STEP 2: PHONE INPUT             */}
-          {/* ════════════════════════════════ */}
+          {/* PHONE INPUT */}
           {step === 'phone-input' && (
             <div className="fade-in-el" style={{ width: '100%' }}>
               <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-                <h2 style={{
-                  fontSize: '22px', fontWeight: '700',
-                  color: '#fff', marginBottom: '12px',
-                }}>
-                  {flow === 'A' ? 'Verify WhatsApp' : 'Login with WhatsApp'}
+                <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#fff', marginBottom: '12px' }}>
+                  {flow === 'A' ? 'Verify Your WhatsApp' : 'Login with WhatsApp'}
                 </h2>
-
-                {/* Flow A: Google account info show karo */}
                 {flow === 'A' && pendingUser.email && (
                   <div style={{
-                    background: 'rgba(16,185,129,0.07)',
-                    border: '1px solid rgba(16,185,129,0.2)',
-                    borderRadius: '10px', padding: '10px 14px',
-                    display: 'flex', alignItems: 'center',
+                    background: 'rgba(16,185,129,0.07)', border: '1px solid rgba(16,185,129,0.2)',
+                    borderRadius: '10px', padding: '10px 14px', display: 'flex', alignItems: 'center',
                     gap: '10px', marginBottom: '16px', textAlign: 'left',
                   }}>
                     <CheckCircle2 size={18} style={{ color: '#10b981', flexShrink: 0 }} />
                     <div>
-                      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '2px' }}>
-                        Google account linked
-                      </div>
-                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#fff' }}>
-                        {pendingUser.fullName}
-                      </div>
-                      <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>
-                        {pendingUser.email}
-                      </div>
+                      <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginBottom: '2px' }}>Google account linked</div>
+                      <div style={{ fontSize: '14px', fontWeight: '600', color: '#fff' }}>{pendingUser.fullName}</div>
+                      <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.5)' }}>{pendingUser.email}</div>
                     </div>
                   </div>
                 )}
-
-                {/* Info */}
                 <div style={{
-                  background: 'rgba(0,229,255,0.05)',
-                  border: '1px solid rgba(0,229,255,0.12)',
-                  borderRadius: '12px', padding: '12px 14px',
-                  color: 'rgba(255,255,255,0.5)', fontSize: '13px',
-                  display: 'flex', alignItems: 'flex-start',
-                  gap: '10px', textAlign: 'left', lineHeight: '1.5',
+                  background: 'rgba(0,229,255,0.05)', border: '1px solid rgba(0,229,255,0.12)',
+                  borderRadius: '12px', padding: '12px 14px', color: 'rgba(255,255,255,0.5)',
+                  fontSize: '13px', display: 'flex', alignItems: 'flex-start', gap: '10px',
+                  textAlign: 'left', lineHeight: '1.5',
                 }}>
                   <Info size={16} style={{ color: '#00e5ff', flexShrink: 0, marginTop: '2px' }} />
-                  <span>
-                    {flow === 'A'
-                      ? 'Enter your WhatsApp number to complete signup. OTP will be sent.'
-                      : 'Enter your registered WhatsApp number. OTP will be sent.'
-                    }
-                  </span>
+                  <span>{flow === 'A' ? 'Enter your WhatsApp number to complete signup.' : 'Enter your registered WhatsApp number to login.'}</span>
                 </div>
               </div>
-
-              <form
-                onSubmit={handlePhoneSubmit}
-                style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
-              >
-                <CountryPhoneInput
-                  value={phoneNumber}
-                  onChange={setPhoneNumber}
-                  error={phoneError}
-                  setError={setPhoneError}
-                />
-
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={isLoading}
-                >
+              <form onSubmit={handlePhoneSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <CountryPhoneInput value={phoneNumber} onChange={setPhoneNumber} error={phoneError} setError={setPhoneError} />
+                <button type="submit" className="btn btn-primary" disabled={isLoading}>
                   {isLoading
-                    ? <span style={{
-                        display: 'flex', alignItems: 'center',
-                        gap: '8px', justifyContent: 'center',
-                      }}>
-                        <span style={{
-                          width: '16px', height: '16px',
-                          border: '2px solid rgba(255,255,255,0.3)',
-                          borderTopColor: '#fff', borderRadius: '50%',
-                          display: 'inline-block',
-                          animation: 'spin 0.8s linear infinite',
-                        }} />
+                    ? <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                        <span style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.8s linear infinite' }} />
                         Sending OTP...
                       </span>
                     : '📲 Send OTP on WhatsApp'
                   }
                 </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setStep('login');
-                    setPhoneError('');
-                    setPhoneNumber('');
-                  }}
-                  className="btn btn-secondary"
-                  disabled={isLoading}
-                >
+                <button type="button" onClick={() => { setStep('login'); setPhoneError(''); setPhoneNumber(''); }} className="btn btn-secondary" disabled={isLoading}>
                   ← Back
                 </button>
               </form>
             </div>
           )}
 
-          {/* ════════════════════════════════ */}
-          {/* STEP 3: OTP VERIFY              */}
-          {/* ════════════════════════════════ */}
+          {/* OTP VERIFY */}
           {step === 'otp-verify' && (
             <OTPVerification
               phoneNumber={pendingUser.phone}
               onVerify={handleOTPVerify}
               onResend={handleResendOTP}
-              onChangeNumber={() => {
-                setStep('phone-input');
-                setOtpError('');
-              }}
+              onChangeNumber={() => { setStep('phone-input'); setOtpError(''); }}
               error={otpError}
               setError={setOtpError}
               isLoading={isLoading}
             />
           )}
 
-          {/* ── Footer Notice ────────────────────────────────── */}
-          <div style={{
-            marginTop: '36px', paddingTop: '20px',
-            borderTop: '1px solid rgba(255,255,255,0.06)',
-            width: '100%',
-          }}>
-            <p style={{
-              fontSize: '11px',
-              color: 'rgba(255,255,255,0.35)',
-              lineHeight: '1.6',
-            }}>
-              <strong style={{
-                color: '#f59e0b',
-                display: 'block', marginBottom: '3px',
-              }}>
-                ⚠️ FRANCHISE OPERATOR POLICY:
-              </strong>
+          <div style={{ marginTop: '36px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.06)', width: '100%' }}>
+            <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', lineHeight: '1.6' }}>
+              <strong style={{ color: '#f59e0b', display: 'block', marginBottom: '3px' }}>⚠️ FRANCHISE OPERATOR POLICY:</strong>
               Once registered under a franchise, members cannot be reassigned.
             </p>
             <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.3)', marginTop: '6px' }}>
-              Support:{' '}
-              <a
-                href="mailto:info@connectsouq.com"
-                style={{ color: '#0052ff', textDecoration: 'underline' }}
-              >
-                info@connectsouq.com
-              </a>
+              Support: <a href="mailto:info@connectsouq.com" style={{ color: '#0052ff', textDecoration: 'underline' }}>info@connectsouq.com</a>
             </p>
           </div>
         </div>
 
-        {/* ── Page Footer ───────────────────────────────────── */}
-        <div style={{
-          textAlign: 'center', fontSize: '12px',
-          color: 'rgba(255,255,255,0.2)',
-          maxWidth: '520px', lineHeight: '1.6',
-        }}>
+        <div style={{ textAlign: 'center', fontSize: '12px', color: 'rgba(255,255,255,0.2)', maxWidth: '520px', lineHeight: '1.6' }}>
           <div>© {new Date().getFullYear()} CS Network Global Franchise Operators Group.</div>
           <div style={{ marginTop: '4px' }}>
-            Powered by{' '}
-            <a
-              href="https://www.connectsouq.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ color: '#0052ff', textDecoration: 'none' }}
-            >
-              Connect Souq
-            </a>
+            Powered by <a href="https://www.connectsouq.com" target="_blank" rel="noopener noreferrer" style={{ color: '#0052ff', textDecoration: 'none' }}>Connect Souq</a>
           </div>
         </div>
       </div>
-
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </LiquidBackground>
   );
 }

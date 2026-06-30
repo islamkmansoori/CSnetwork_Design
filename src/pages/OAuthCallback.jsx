@@ -6,22 +6,21 @@ import CSLogo from '../components/CSLogo';
 export default function OAuthCallback() {
   const navigate = useNavigate();
   const [status, setStatus] = useState('Processing your login...');
-  const [error,  setError]  = useState('');
+  const [error, setError]   = useState('');
 
   useEffect(() => {
     const params        = new URLSearchParams(window.location.search);
     const userId        = params.get('userId');
     const phoneVerified = params.get('phoneVerified');
+    const isFormFill    = params.get('isFormFill');
     const errorParam    = params.get('error');
 
-    // ── Error case ────────────────────────────────────────────
     if (errorParam) {
-      setError('Google login failed: ' + errorParam);
+      setError('Login failed: ' + errorParam);
       setTimeout(() => navigate('/'), 3000);
       return;
     }
 
-    // ── Invalid params ────────────────────────────────────────
     if (!userId || phoneVerified === null) {
       setError('Invalid callback. Redirecting...');
       setTimeout(() => navigate('/'), 2000);
@@ -29,34 +28,37 @@ export default function OAuthCallback() {
     }
 
     // ── phoneVerified = true → Existing user ──────────────────
-    // Cookies mein tokens hain (backend ne set kiye)
-    // Bas localStorage update karo → dashboard
     if (phoneVerified === 'true') {
-      setStatus('Welcome back! Loading dashboard...');
+      setStatus('Welcome back! Loading...');
 
       localStorage.setItem('cs_isLoggedIn', 'true');
       localStorage.setItem('cs_userId', userId);
-      // userData baad mein dashboard fetch karega
       localStorage.setItem('cs_userData', JSON.stringify({
         userId,
         fullName: '',
-        email:    '',
-        phone:    '',
+        email: '',
+        phone: '',
+        isFormFill: isFormFill === 'true',
       }));
 
-      setTimeout(() => navigate('/dashboard', { replace: true }), 800);
+      // ✅ isFormFill check
+      if (isFormFill === 'true') {
+        // Form already done → dashboard
+        setTimeout(() => navigate('/dashboard', { replace: true }), 800);
+      } else {
+        // Form not done → complete profile
+        setTimeout(() => navigate('/complete-profile', { replace: true }), 800);
+      }
 
     // ── phoneVerified = false → New user ──────────────────────
-    // Phone verify karna hai
     } else if (phoneVerified === 'false') {
-      setStatus('One more step — verify your WhatsApp...');
+      setStatus('Phone verification needed...');
 
-      // userId sessionStorage mein save karo
-      // (fullName, email URL mein nahi aaya - backend ne nahi bheja)
       sessionStorage.setItem('pending_google_user', JSON.stringify({
         userId,
         fullName: '',
-        email:    '',
+        email: '',
+        isFormFill: isFormFill === 'true',
       }));
 
       setTimeout(() => navigate('/?step=phone-verify', { replace: true }), 500);
@@ -88,7 +90,6 @@ export default function OAuthCallback() {
           </div>
         ) : (
           <div style={{ textAlign: 'center' }}>
-            {/* Spinner */}
             <div style={{
               width: '52px', height: '52px',
               border: '3px solid rgba(255,255,255,0.08)',

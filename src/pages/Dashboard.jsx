@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  LogOut, User, Mail, Phone, Hash,
+  LogOut, Mail, Phone, Hash,
   CheckCircle2, Building2, Globe,
   Bell, Settings, ChevronRight,
   TrendingUp, Users, DollarSign, Star,
+  Briefcase, MapPin,
 } from 'lucide-react';
 import LiquidBackground from '../components/LiquidBackground';
 import CSLogo from '../components/CSLogo';
@@ -16,16 +17,16 @@ export default function Dashboard() {
     fullName: '',
     email:    '',
     phone:    '',
+    company:  '',
+    country:  '',
+    roles:    [],
   });
 
   // ── Load User Data ──────────────────────────────────────────
   useEffect(() => {
     try {
       const raw = localStorage.getItem('cs_userData');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        setUserData(parsed);
-      }
+      if (raw) setUserData(JSON.parse(raw));
     } catch (e) {
       console.error('userData parse error:', e);
     }
@@ -44,27 +45,24 @@ export default function Dashboard() {
   const displayName = userData.fullName || 'Franchise Operator';
   const avatar      = displayName[0].toUpperCase();
 
-  // ── Stats Cards data ─────────────────────────────────────────
   const stats = [
-    { icon: <Users size={20} />,      label: 'Network Members', value: '—',    color: '#0052ff' },
-    { icon: <TrendingUp size={20} />, label: 'Growth Rate',     value: '—',    color: '#10b981' },
-    { icon: <DollarSign size={20} />, label: 'Revenue',         value: '—',    color: '#f59e0b' },
-    { icon: <Star size={20} />,       label: 'Rank',            value: '—',    color: '#8b5cf6' },
+    { icon: <Users size={20} />,      label: 'Network Members', value: '—', color: '#0052ff' },
+    { icon: <TrendingUp size={20} />, label: 'Growth Rate',     value: '—', color: '#10b981' },
+    { icon: <DollarSign size={20} />, label: 'Revenue',         value: '—', color: '#f59e0b' },
+    { icon: <Star size={20} />,       label: 'Rank',            value: '—', color: '#8b5cf6' },
   ];
 
-  // ── Quick Links ──────────────────────────────────────────────
   const quickLinks = [
-    { label: 'My Network',        icon: <Users size={16} />,    href: '#' },
-    { label: 'Earnings & Payouts',icon: <DollarSign size={16}/>,href: '#' },
-    { label: 'Franchise Portal',  icon: <Globe size={16} />,    href: 'https://www.connectsouq.com' },
-    { label: 'Settings',          icon: <Settings size={16} />, href: '#' },
+    { label: 'My Network',         icon: <Users size={16} />,      href: '#' },
+    { label: 'Earnings & Payouts', icon: <DollarSign size={16} />, href: '#' },
+    { label: 'Franchise Portal',   icon: <Globe size={16} />,      href: 'https://www.connectsouq.com' },
+    { label: 'Settings',           icon: <Settings size={16} />,   href: '#' },
   ];
 
   return (
     <LiquidBackground>
       <div style={{
-        minHeight: '100vh',
-        padding: '24px 16px',
+        minHeight: '100vh', padding: '24px 16px',
         display: 'flex', flexDirection: 'column',
         alignItems: 'center',
         zIndex: 2, position: 'relative',
@@ -79,9 +77,7 @@ export default function Dashboard() {
           marginBottom: '28px',
         }}>
           <CSLogo size="small" />
-
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {/* Notification Bell */}
             <button style={{
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.1)',
@@ -91,8 +87,6 @@ export default function Dashboard() {
             }}>
               <Bell size={18} />
             </button>
-
-            {/* Logout */}
             <button
               onClick={handleLogout}
               style={{
@@ -117,14 +111,19 @@ export default function Dashboard() {
           background: 'rgba(255,255,255,0.03)',
           border: '1px solid rgba(255,255,255,0.07)',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center',
+            gap: '20px', flexWrap: 'wrap',
+          }}>
             {/* Avatar */}
             <div style={{
               width: '72px', height: '72px', borderRadius: '50%',
               background: 'linear-gradient(135deg, #0052ff, #00e5ff)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              display: 'flex', alignItems: 'center',
+              justifyContent: 'center',
               fontSize: '28px', fontWeight: '800', color: '#fff',
-              flexShrink: 0, boxShadow: '0 0 24px rgba(0,82,255,0.4)',
+              flexShrink: 0,
+              boxShadow: '0 0 24px rgba(0,82,255,0.4)',
               border: '2px solid rgba(0,82,255,0.5)',
             }}>
               {avatar}
@@ -132,11 +131,16 @@ export default function Dashboard() {
 
             {/* Info */}
             <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginBottom: '6px' }}>
-                <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#fff', margin: 0 }}>
+              <div style={{
+                display: 'flex', alignItems: 'center',
+                gap: '10px', flexWrap: 'wrap', marginBottom: '8px',
+              }}>
+                <h2 style={{
+                  fontSize: '22px', fontWeight: '700',
+                  color: '#fff', margin: 0,
+                }}>
                   {displayName}
                 </h2>
-                {/* Verified Badge */}
                 <span style={{
                   display: 'inline-flex', alignItems: 'center', gap: '4px',
                   background: 'rgba(16,185,129,0.12)',
@@ -150,19 +154,69 @@ export default function Dashboard() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {userData.email && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>
+                  <div style={{
+                    display: 'flex', alignItems: 'center',
+                    gap: '8px', fontSize: '13px',
+                    color: 'rgba(255,255,255,0.6)',
+                  }}>
                     <Mail size={13} /> {userData.email}
                   </div>
                 )}
                 {userData.phone && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'rgba(255,255,255,0.6)' }}>
+                  <div style={{
+                    display: 'flex', alignItems: 'center',
+                    gap: '8px', fontSize: '13px',
+                    color: 'rgba(255,255,255,0.6)',
+                  }}>
                     <Phone size={13} /> {userData.phone}
                   </div>
                 )}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'rgba(255,255,255,0.5)' }}>
+                {userData.company && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center',
+                    gap: '8px', fontSize: '13px',
+                    color: 'rgba(255,255,255,0.6)',
+                  }}>
+                    <Building2 size={13} /> {userData.company}
+                  </div>
+                )}
+                {userData.country && (
+                  <div style={{
+                    display: 'flex', alignItems: 'center',
+                    gap: '8px', fontSize: '13px',
+                    color: 'rgba(255,255,255,0.6)',
+                  }}>
+                    <MapPin size={13} /> {userData.country}
+                  </div>
+                )}
+                <div style={{
+                  display: 'flex', alignItems: 'center',
+                  gap: '8px', fontSize: '13px',
+                  color: 'rgba(255,255,255,0.5)',
+                }}>
                   <Hash size={13} /> Operator ID: {userData.userId || '—'}
                 </div>
               </div>
+
+              {/* Roles */}
+              {userData.roles && userData.roles.length > 0 && (
+                <div style={{
+                  display: 'flex', flexWrap: 'wrap',
+                  gap: '6px', marginTop: '10px',
+                }}>
+                  {userData.roles.map(role => (
+                    <span key={role} style={{
+                      background: 'rgba(0,82,255,0.12)',
+                      border: '1px solid rgba(0,82,255,0.25)',
+                      borderRadius: '20px', padding: '3px 10px',
+                      fontSize: '11px', color: '#00e5ff',
+                      fontWeight: '600', textTransform: 'capitalize',
+                    }}>
+                      {role.replace(/_/g, ' ')}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Network Badge */}
@@ -203,7 +257,10 @@ export default function Dashboard() {
               }}>
                 {stat.icon}
               </div>
-              <div style={{ fontSize: '22px', fontWeight: '800', color: '#fff', marginBottom: '4px' }}>
+              <div style={{
+                fontSize: '22px', fontWeight: '800',
+                color: '#fff', marginBottom: '4px',
+              }}>
                 {stat.value}
               </div>
               <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.45)' }}>
@@ -221,12 +278,14 @@ export default function Dashboard() {
           border: '1px solid rgba(255,255,255,0.06)',
           marginBottom: '20px',
         }}>
-          <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+          <div style={{
+            padding: '16px 20px',
+            borderBottom: '1px solid rgba(255,255,255,0.05)',
+          }}>
             <h3 style={{ color: '#fff', fontSize: '14px', fontWeight: '600', margin: 0 }}>
               Quick Access
             </h3>
           </div>
-
           {quickLinks.map((link, i) => (
             <a
               key={i}
@@ -259,20 +318,34 @@ export default function Dashboard() {
           background: 'rgba(245,158,11,0.06)',
           border: '1px solid rgba(245,158,11,0.15)',
           borderRadius: '14px', marginBottom: '16px',
-          fontSize: '12px', color: 'rgba(255,255,255,0.5)', lineHeight: '1.6',
+          fontSize: '12px', color: 'rgba(255,255,255,0.5)',
+          lineHeight: '1.6',
         }}>
           <strong style={{ color: '#f59e0b', display: 'block', marginBottom: '3px' }}>
             ⚠️ FRANCHISE OPERATOR POLICY
           </strong>
-          Once registered under a franchise, members cannot be reassigned to another franchise.
-          Contact <a href="mailto:info@connectsouq.com" style={{ color: '#0052ff' }}>info@connectsouq.com</a> for support.
+          Once registered under a franchise, members cannot be reassigned.
+          Contact{' '}
+          <a href="mailto:info@connectsouq.com" style={{ color: '#0052ff' }}>
+            info@connectsouq.com
+          </a>{' '}
+          for support.
         </div>
 
         {/* Footer */}
-        <div style={{ textAlign: 'center', fontSize: '12px', color: 'rgba(255,255,255,0.25)', marginTop: '8px' }}>
+        <div style={{
+          textAlign: 'center', fontSize: '12px',
+          color: 'rgba(255,255,255,0.25)', marginTop: '8px',
+        }}>
           © {new Date().getFullYear()} CS Network · Powered by{' '}
-          <a href="https://www.connectsouq.com" target="_blank" rel="noopener noreferrer"
-            style={{ color: '#0052ff', textDecoration: 'none' }}>Connect Souq</a>
+          <a
+            href="https://www.connectsouq.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ color: '#0052ff', textDecoration: 'none' }}
+          >
+            Connect Souq
+          </a>
         </div>
       </div>
     </LiquidBackground>
