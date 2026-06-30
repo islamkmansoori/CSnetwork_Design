@@ -42,7 +42,6 @@ const callAuthOps = async (body) => {
       'Content-Type': 'application/json',
       'ngrok-skip-browser-warning': 'true',
     },
-    credentials: 'include',
     body: JSON.stringify(body),
   });
 
